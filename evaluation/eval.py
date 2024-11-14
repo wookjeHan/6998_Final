@@ -1,26 +1,12 @@
-import os, sys
-sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "..")))
-from commonsense_constraint import evaluation as commonsense_eval
-from hard_constraint import evaluation as hard_eval
+from .commonsense_constraint import evaluation as commonsense_eval
+from .hard_constraint import evaluation as hard_eval
 import json
 from tqdm import tqdm
 from datasets import load_dataset
-import argparse
-
-
-# 원래 코드 
-# example_evaluation.jsonl 이랑 generated_plan_1.json 은 필요없음 날려도 됨.
-# def load_line_json_data(filename):
-#     data = []
-#     with open(filename, 'r', encoding='utf-8') as f:
-#         for line in f.read().strip().split('\n'):
-#             unit = json.loads(line)
-#             data.append(unit)
-#     return data
 
 
 def load_line_json_data(filename):
-    with open('../res/generated_predictions-vanilla-postprocess.json', 'r', encoding='utf-8') as f:
+    with open(filename, 'r', encoding='utf-8') as f:
         data = json.load(f)
     return data
 
@@ -59,7 +45,7 @@ def paper_term_mapping(commonsense_constraint_record, hard_constraint_record):
     return remap_commonsense_constraint_record, remap_hard_constraint_record
 
 
-def eval_score(set_type: str, file_path: str):
+def eval_score(set_type: str, file_path: str, is_debug: bool):
 
     if set_type == 'train':
         query_data_list  = load_dataset('osunlp/TravelPlanner','train',download_mode="force_redownload")['train']
@@ -67,7 +53,7 @@ def eval_score(set_type: str, file_path: str):
         query_data_list  = load_dataset('osunlp/TravelPlanner','validation',download_mode="force_redownload")['validation']
 
     
-    query_data_list = [x for x in query_data_list][:2] # 처음 두개만 가져왔음
+    query_data_list = [x for x in query_data_list][:2] if is_debug else [x for x in query_data_list]
     hardConstraint_statistic= {level:{day:[] for day in [3,5,7]} for level in ['easy','medium','hard']} 
     commonsenseConstraint_statistic = {level:{day:[] for day in [3,5,7]} for level in ['easy','medium','hard']} 
     tested_plans = load_line_json_data(file_path)
@@ -216,16 +202,15 @@ def eval_score(set_type: str, file_path: str):
     return result, {"Commonsense Constraint":remap_commonsense_constraint_record, "Hard Constraint":remap_hard_constraint_record}
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--set_type", type=str, default="validation")
-    parser.add_argument("--evaluation_file_path", type=str, default="./")
-    args = parser.parse_args()
-
-    scores, detailed_scores = eval_score(args.set_type, file_path=args.evaluation_file_path)
+def eval_fn(set_type, file_path, eval_path, is_debug=False):
+    scores, detailed_scores = eval_score(set_type, file_path, is_debug)
 
     for key in scores:
         print(f"{key}: {scores[key]*100}%")
+    
+    print("DETAILED SCORE : ", detailed_scores)
+    with open(eval_path, 'w', encoding='utf-8') as f:
+        json.dump(scores, f, indent=4, ensure_ascii=False)
     
     print("------------------")
     print(detailed_scores)

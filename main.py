@@ -1,6 +1,7 @@
 from agents import Vanilla_LLM, FewShot_LLM
 from data import get_dataloader, get_dataset
 from postprocess import postprocess_plan
+from evaluation import eval_fn
 
 import argparse
 from tqdm import tqdm
@@ -30,7 +31,8 @@ def main(args):
         pred = model.generate(batch) # array of string
         dict = [{'idx': id*args.batch_size+x, 'query':batch['query'][x], 'plan':pred[x]} for x in range(len(batch['query']))]
         preds.extend(dict)
-        break
+        if args.is_debug:
+            break
     # ars.output_dir 에 파일저장
     os.makedirs(args.output_dir, exist_ok=True) 
     output_file = os.path.join(args.output_dir, f'generated_predictions-{args.strategy}.json')
@@ -42,14 +44,18 @@ def main(args):
     postprocess_dir = os.path.join(args.output_dir, f'generated_predictions-{args.strategy}-postprocess.json')
     postprocess_plan(output_file, postprocess_dir)
     print(f"Postprocess saved to {postprocess_dir}")
-
-
+    
+    # Start eval
+    print("Start Evaluating")
+    eval_dir = os.path.join(args.output_dir, f'generated_predictions-{args.strategy}-result.json')
+    eval_fn("validation", postprocess_dir, eval_dir, args.is_debug)
+    print(f"Eval Result saved to {eval_dir}")
+    
 if __name__ == '__main__':
-    # TODO3: 이거는 할 수 있을지 모르겠어 (eval까지 한번 해보기?)
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--llm", type=str, default="gpt-4o-mini")
-    parser.add_argument("--strategy", type=str, default="few_shot_llm")
+    parser.add_argument("--strategy", type=str, default="vanilla")
+    parser.add_argument("--is_debug", type=bool, default=True)
 
     parser.add_argument("--batch_size", type=int, default=2)
 
