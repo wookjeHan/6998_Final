@@ -1,0 +1,6 @@
+.history
+.DS_Store
+*.json
+*.jsonl
+*.pyc
+database
