@@ -1,6 +1,8 @@
 from openai import OpenAI
 import openai
 from tqdm import tqdm
+import re
+import json
 
 import os
 import random
@@ -15,7 +17,7 @@ class FewShot_LLM:
         if prompt is not None:
             self.prompt = prompt
         else:
-            self.prompt = "You are a helpful assistant that plan the travel satisfying the constraint. When answering user questions follow these examples:"
+            self.prompt = "You are a helpful assistant that plan the travel satisfying the constraint, refering to the given information when you plan. When answering user questions follow these examples:"
         self.client = OpenAI()
         
         assert type(few_shot_num) == int and few_shot_num > 0, "Please make few_shot_num bigger than 1. If you want to set as 0, consider using Vanilla LLM"
@@ -32,11 +34,17 @@ class FewShot_LLM:
                     
     def generate(self, data_batch):
         responses = []
-        for data in tqdm(data_batch['query']):
-            input_messages = [{"role": "system", "content" : self.prompt}]
-            # Appending few shots 
-            input_messages.append({"role": "user", "content": data})
-
+        for query, reference_information in tqdm(zip(data_batch['query'], data_batch['reference_information'])):
+            # Giving Reference Information
+            query = f"Query: {query}\n\nReference Information:\n"
+            # Postprocessing reference information so that json.loads done properly
+            reference_information =  re.sub(r"(\{|, )'([^']+)'(?=:)", r'\1"\2"', reference_information)  # Replace keys
+            reference_information = re.sub(r": '([^']+)'", r': "\1"', reference_information)         # Replace values
+            reference_information = json.loads(reference_information)
+            for ref in reference_information:
+                query += f"Title: {ref['Description']}\nContent: {ref['Content']}\n\n"
+                
+            input_messages = [{"role": "system", "content" : self.prompt}, {"role": "user", "content": query}]
             # API CALL -> Generate
             response = self.client.chat.completions.create(
                 model=self.model_name,
