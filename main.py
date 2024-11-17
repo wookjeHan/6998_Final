@@ -1,4 +1,4 @@
-from agents import Vanilla_LLM, FewShot_LLM
+from agents import Vanilla_LLM, FewShot_LLM, ReWoo
 from data import get_dataloader, get_dataset
 from postprocess import postprocess_plan
 from evaluation import eval_fn
@@ -22,7 +22,7 @@ def main(args):
     elif args.strategy == 'got':
         model = Vanilla_LLM(args.llm)
     elif args.strategy == 'rewoo':
-        model = Vanilla_LLM(args.llm)
+        model = ReWoo(planner_model=args.llm, solver_model=args.llm)
     else:
         assert False, f"Strategy: {args.strategy} is not supported"
     # Eval
@@ -54,7 +54,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--llm", type=str, default="gpt-4o-mini")
-    parser.add_argument("--strategy", type=str, default="vanilla")
+    parser.add_argument("--strategy", type=str, default="rewoo")
     parser.add_argument("--is_debug", type=bool, default=True)
 
     parser.add_argument("--batch_size", type=int, default=2)
