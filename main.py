@@ -1,4 +1,4 @@
-from agents import Vanilla_LLM, FewShot_LLM, ReWoo
+from agents import Vanilla_LLM, FewShot_LLM, ReWoo, GoT_LLM
 from data import get_dataloader, get_dataset
 from postprocess import postprocess_plan
 from evaluation import eval_fn
@@ -16,15 +16,13 @@ def main(args):
         model = Vanilla_LLM(args.llm)
     elif args.strategy == 'few_shot_llm':
         model = FewShot_LLM(args.llm, few_shot_num=3, train_datas=train_dataset)
-    # 보류
-    # elif args.strategy == 'cot':
-    #     model = Vanilla_LLM(args.llm)
     elif args.strategy == 'got':
-        model = Vanilla_LLM(args.llm)
+        model = GoT_LLM(args.llm)
     elif args.strategy == 'rewoo':
         model = ReWoo(planner_model=args.llm, solver_model=args.llm)
     else:
         assert False, f"Strategy: {args.strategy} is not supported"
+        
     # Eval
     preds = []
     for id, batch in tqdm(enumerate(val_dataloader)):
@@ -54,7 +52,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--llm", type=str, default="gpt-4o-mini")
-    parser.add_argument("--strategy", type=str, default="rewoo")
+    parser.add_argument("--strategy", type=str, default="got")
     parser.add_argument("--is_debug", type=bool, default=True)
 
     parser.add_argument("--batch_size", type=int, default=2)

@@ -13,9 +13,11 @@ import time
 from typing import List, Dict, Union
 from openai import OpenAI, OpenAIError
 from openai.types.chat.chat_completion import ChatCompletion
+import openai
 
 from .abstract_language_model import AbstractLanguageModel
 
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 class ChatGPT(AbstractLanguageModel):
     """
@@ -25,7 +27,7 @@ class ChatGPT(AbstractLanguageModel):
     """
 
     def __init__(
-        self, config_path: str = "", model_name: str = "chatgpt", cache: bool = False
+        self, model_name, cache: bool = False
     ) -> None:
         """
         Initialize the ChatGPT instance with configuration, model details, and caching options.
@@ -37,24 +39,20 @@ class ChatGPT(AbstractLanguageModel):
         :param cache: Flag to determine whether to cache responses. Defaults to False.
         :type cache: bool
         """
-        super().__init__(config_path, model_name, cache)
-        self.config: Dict = self.config[model_name]
+        super().__init__(model_name, cache)
         # The model_id is the id of the model that is used for chatgpt, i.e. gpt-4, gpt-3.5-turbo, etc.
-        self.model_id: str = self.config["model_id"]
-        # The prompt_token_cost and response_token_cost are the costs for 1000 prompt tokens and 1000 response tokens respectively.
-        self.prompt_token_cost: float = self.config["prompt_token_cost"]
-        self.response_token_cost: float = self.config["response_token_cost"]
+        self.model_id: str = self.model_name
         # The temperature of a model is defined as the randomness of the model's output.
-        self.temperature: float = self.config["temperature"]
+        self.temperature: float = 0.8
         # The maximum number of tokens to generate in the chat completion.
-        self.max_tokens: int = self.config["max_tokens"]
+        self.max_tokens: int = 1536
         # The stop sequence is a sequence of tokens that the model will stop generating at (it will not generate the stop sequence).
-        self.stop: Union[str, List[str]] = self.config["stop"]
+        self.stop: Union[str, List[str]] = "null"
         # The account organization is the organization that is used for chatgpt.
-        self.organization: str = self.config["organization"]
+        self.organization: str = ""
         # if self.organization == "":
         #     self.logger.warning("OPENAI_ORGANIZATION is not set")
-        self.api_key: str = os.getenv("OPENAI_API_KEY", self.config["api_key"])
+        self.api_key: str = os.getenv("OPENAI_API_KEY")
         if self.api_key == "":
             raise ValueError("OPENAI_API_KEY is not set")
         # Initialize the OpenAI Client
@@ -125,15 +123,9 @@ class ChatGPT(AbstractLanguageModel):
 
         self.prompt_tokens += response.usage.prompt_tokens
         self.completion_tokens += response.usage.completion_tokens
-        prompt_tokens_k = float(self.prompt_tokens) / 1000.0
-        completion_tokens_k = float(self.completion_tokens) / 1000.0
-        self.cost = (
-            self.prompt_token_cost * prompt_tokens_k
-            + self.response_token_cost * completion_tokens_k
-        )
+        
         self.logger.info(
             f"This is the response from chatgpt: {response}"
-            f"\nThis is the cost of the response: {self.cost}"
         )
         return response
 

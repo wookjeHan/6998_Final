@@ -6,7 +6,7 @@ import json
 import csv
 from statistics import fmean
 from typing import Dict, List, Callable, Set, Union
-from graph_of_thoughts import controller, language_models, operations, prompter, parser
+from .graph_of_thoughts import controller, language_models, operations, prompter, parser
 from data import get_dataloader, get_dataset
 
     
@@ -464,15 +464,14 @@ def generate(
         executor.output_graph(path)
 
 class GoT_LLM:
-    def __init__(self, llm_config_path: str):
+    def __init__(self, model_name: str):
         """
         Initializes the GoT_LLM with the specified LLM configuration.
 
         :param llm_config_path: Path to the language model configuration JSON file.
         """
         self.llm = language_models.ChatGPT(
-            llm_config_path,
-            model_name="chatgpt",
+            model_name=model_name,
             cache=True,
         )
         self.prompter = PlanningPrompter()

@@ -19,7 +19,7 @@ class AbstractLanguageModel(ABC):
     """
 
     def __init__(
-        self, config_path: str = "", model_name: str = "", cache: bool = False
+        self, model_name: str = "", cache: bool = False
     ) -> None:
         """
         Initialize the AbstractLanguageModel instance with configuration, model details, and caching options.
@@ -32,32 +32,13 @@ class AbstractLanguageModel(ABC):
         :type cache: bool
         """
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.config: Dict = None
         self.model_name: str = model_name
         self.cache = cache
         if self.cache:
             self.response_cache: Dict[str, List[Any]] = {}
-        self.load_config(config_path)
         self.prompt_tokens: int = 0
         self.completion_tokens: int = 0
         self.cost: float = 0.0
-
-    def load_config(self, path: str) -> None:
-        """
-        Load configuration from a specified path.
-
-        :param path: Path to the config file. If an empty path provided,
-                     default is `config.json` in the current directory.
-        :type path: str
-        """
-        if path == "":
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            path = os.path.join(current_dir, "config.json")
-
-        with open(path, "r") as f:
-            self.config = json.load(f)
-
-        self.logger.debug(f"Loaded config from {path} for {self.model_name}")
 
     def clear_cache(self) -> None:
         """
