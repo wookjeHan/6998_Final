@@ -1,6 +1,6 @@
 # Overview
 
-This project evaluates advanced reasoning methods, [Graph of Thought (GoT)](https://github.com/spcl/graph-of-thoughts) and [ReWOO](https://arxiv.org/abs/2305.18323), on the [Travel Planner](https://github.com/OSU-NLP-Group/TravelPlanner?tab=readme-ov-file) benchmark, which requires generating travel itineraries that meet complex user constraints like budgets and logical sequencing. By comparing these methods to traditional techniques like Chain of Thought (CoT) and Tree of Thought (ToT), we analyze their effectiveness in real-world reasoning tasks. 
+This project 1) evaluates advanced reasoning methods, [Graph of Thought (GoT)](https://github.com/spcl/graph-of-thoughts) and [ReWOO](https://arxiv.org/abs/2305.18323) compared to the naive baselines and 2) conduct error-analysis to improve the advanced reasoning method for the real-world task, on the [Travel Planner](https://github.com/OSU-NLP-Group/TravelPlanner?tab=readme-ov-file) benchmark, which requires generating travel itineraries that meet complex user constraints like budgets and logical sequencing. By comparing these methods to traditional techniques like Chain of Thought (CoT) and Tree of Thought (ToT), we analyze their effectiveness in real-world reasoning tasks and suggest further room to make LLMs handle sophisicated reasoning task. 
 
 # Setup Environment
 
@@ -17,7 +17,7 @@ pip3 install openai tqdm geopy langchain pandas torch datasets requests graph_of
 2. Extract the contents into the `TravelPlanner` directory.
 
    ```
-   your/path/TravelPlanner
+   YourPathToTravelPlanner
    ```
 
 
@@ -73,7 +73,8 @@ python3 main.py --llm <LLM_MODEL_NAME> --strategy <STRATEGY> --batch_size <BATCH
 - Postprocessed Plans: Saved to `<OUTPUT_DIRECTORY>/generated_predictions-<STRATEGY>-postprocess.json`.
 - Evaluation Results: Saved to `<OUTPUT_DIRECTORY>/generated_predictions-<STRATEGY>-result.json`.
 
-
+### 4. Results
+TODO
 
 # Contact
 If you have any problems, please contact [Wonjoon Choi](mailto:wc2852@columbia.edu) and [Wookje Han](mailto:wh2571@columbia.edu).

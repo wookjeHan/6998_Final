@@ -1,4 +1,5 @@
 import os
+import time
 
 import openai 
 from openai import OpenAI
@@ -40,16 +41,23 @@ class LLMNode(Node):
 
     def call_llm(self, prompt, stop):
         messages = [{"role": "user", "content": prompt}]
-        response = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=messages,
-            temperature=OPENAI_CONFIG["temperature"],
-            max_tokens=OPENAI_CONFIG["max_tokens"],
-            top_p=OPENAI_CONFIG["top_p"],
-            frequency_penalty=OPENAI_CONFIG["frequency_penalty"],
-            presence_penalty=OPENAI_CONFIG["presence_penalty"],
-            stop=stop
-        )
+        response = None
+        while response is None:
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=messages,
+                    temperature=OPENAI_CONFIG["temperature"],
+                    max_tokens=OPENAI_CONFIG["max_tokens"],
+                    top_p=OPENAI_CONFIG["top_p"],
+                    frequency_penalty=OPENAI_CONFIG["frequency_penalty"],
+                    presence_penalty=OPENAI_CONFIG["presence_penalty"],
+                    stop=stop
+                )
+            except Exception as e:
+                print(e)
+                print("Retrying")
+                time.sleep(10)
         return {"input": prompt,
                 "output": response.choices[0].message.content,
                 "prompt_tokens": response.usage.prompt_tokens,

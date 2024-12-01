@@ -112,15 +112,21 @@ class ChatGPT(AbstractLanguageModel):
         :return: The OpenAI model's response.
         :rtype: ChatCompletion
         """
-        response = self.client.chat.completions.create(
-            model=self.model_id,
-            messages=messages,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            n=num_responses,
-            stop=self.stop,
-        )
-
+        response = None
+        while response is None:
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model_id,
+                    messages=messages,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                    n=num_responses,
+                    stop=self.stop,
+                )
+            except Exception as e:
+                print(e)
+                print("Retrying")
+                time.sleep(10)
         self.prompt_tokens += response.usage.prompt_tokens
         self.completion_tokens += response.usage.completion_tokens
         

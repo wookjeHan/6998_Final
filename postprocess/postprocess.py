@@ -16,22 +16,22 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 def process_with_gpt4o_mini(text: str, prefix: str) -> str:
     client = OpenAI()
     """Send the text to GPT-4 (gpt4o-mini) for processing with the given prefix prompt."""
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": prefix},
-                {"role": "user", "content": text}
-            ],
-            max_tokens=1500,
-            temperature=0
-        )
-        return response.choices[0].message.content.strip()
-    except openai.error.OpenAIError as e:
-        print(f"Error with OpenAI API: {e}")
-        time.sleep(5)  # Wait and try again in case of rate limiting
-        return process_with_gpt4o_mini(text, prefix)  # Retry on failure
-
+    response = None
+    while response is None:
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": prefix},
+                    {"role": "user", "content": text}
+                ],
+                max_tokens=1500,
+                temperature=0
+            )
+            return response.choices[0].message.content.strip()
+        except openai.error.OpenAIError as e:
+            print(f"Error with OpenAI API: {e}")
+            time.sleep(5)
 
 
 def postprocess_plan(plan_file, post_file):

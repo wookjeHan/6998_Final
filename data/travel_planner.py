@@ -6,7 +6,10 @@ from datasets import load_dataset
 
 def get_dataset(split):
     assert split in ['train', 'validation'], "split shoud be train or val"
-    ds = load_dataset("osunlp/TravelPlanner", split)[split]
+    try:
+        ds = load_dataset("osunlp/TravelPlanner", split)[split]
+    except Exception as e:
+        print(f"Error handled during downloading the dataset Error: {e}")
     return ds    
 
 def get_dataloader(split, batch_size, shuffle):

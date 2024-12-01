@@ -3,6 +3,7 @@ import openai
 from tqdm import tqdm
 import json
 
+import time
 import os
 import re
 
@@ -33,12 +34,19 @@ class Vanilla_LLM:
                 
             input_messages = [{"role": "system", "content" : self.prompt}, {"role": "user", "content": query}]
             # API CALL -> Generate
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=input_messages,
-                max_tokens=self.max_tokens,
-                temperature=self.temp
-            )
+            response = None
+            while response is None:
+                try:
+                    response = self.client.chat.completions.create(
+                        model=self.model_name,
+                        messages=input_messages,
+                        max_tokens=self.max_tokens,
+                        temperature=self.temp
+                    )
+                except Exception as e:
+                    print(e)
+                    print("Retrying Generate....")
+                    time.sleep(10)
             # Extract the generated solution from the response
             # Return the solution
             responses.append(response.choices[0].message.content)
