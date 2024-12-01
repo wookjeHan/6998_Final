@@ -400,22 +400,16 @@ def got() -> operations.GraphOfOperations:
     """
     operations_graph = operations.GraphOfOperations()
 
-    operations_graph.append_operation(operations.Generate(1, 2))
-    operations_graph.append_operation(operations.Score(1, False))
-    keep_best = operations.KeepBestN(1, True)
+    operations_graph.append_operation(operations.Generate(1, 3))
+    operations_graph.append_operation(operations.Score(2, False))
+    keep_best = operations.KeepBestN(2, True)
     operations_graph.append_operation(keep_best)
     
-    # operations_graph.append_operation(operations.Aggregate(3))
-    # operations_graph.append_operation(operations.Score(2, False))
-    # keep_best2 = operations.KeepBestN(1, True)
-    # keep_best2.add_predecessor(keep_best)
-    # operations_graph.append_operation(keep_best2)
-
-    # operations_graph.append_operation(operations.Generate(1, 3))
-    # operations_graph.append_operation(operations.Score(2, False))
-    # keep_best3 = operations.KeepBestN(1, True)
-    # keep_best3.add_predecessor(keep_best2)
-    # operations_graph.append_operation(keep_best3)
+    operations_graph.append_operation(operations.Aggregate(2))
+    operations_graph.append_operation(operations.Score(2, False))
+    keep_best2 = operations.KeepBestN(1, True)
+    keep_best2.add_predecessor(keep_best)
+    operations_graph.append_operation(keep_best2)
 
     return operations_graph
 
