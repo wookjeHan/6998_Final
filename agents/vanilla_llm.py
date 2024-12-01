@@ -19,19 +19,16 @@ class Vanilla_LLM:
         else:
             self.prompt = "You are a helpful assistant that plan the travel satisfying the constraint.\nPlease refer to the given information when you plan."
         self.client = OpenAI()
-
+        print("Initializing Vanilla LLM...")
+        
     def generate(self, data_batch):
         responses = []
         for query, reference_information in tqdm(zip(data_batch['query'], data_batch['reference_information'])):
+            # print(reference_information)
             # Giving Reference Information
-            query = f"Query: {query}\n\nReference Information:\n"
+            query = f"Query: {query}\n\nReference Information: {reference_information}\n"
             # Postprocessing reference information so that json.loads done properly
-            reference_information =  re.sub(r"(\{|, )'([^']+)'(?=:)", r'\1"\2"', reference_information)  # Replace keys
-            reference_information = re.sub(r": '([^']+)'", r': "\1"', reference_information)         # Replace values
-            reference_information = json.loads(reference_information)
-            for ref in reference_information:
-                query += f"Title: {ref['Description']}\nContent: {ref['Content']}\n\n"
-                
+            
             input_messages = [{"role": "system", "content" : self.prompt}, {"role": "user", "content": query}]
             # API CALL -> Generate
             response = None

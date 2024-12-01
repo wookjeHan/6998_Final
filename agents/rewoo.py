@@ -234,14 +234,7 @@ class PWS:
     def generate(self, data_batch):
         responses = []
         for query, reference_information in tqdm(zip(data_batch['query'], data_batch['reference_information'])):
-            reference = ""
-            # Postprocess reference information
-            reference_information =  re.sub(r"(\{|, )'([^']+)'(?=:)", r'\1"\2"', reference_information)  # Replace keys
-            reference_information = re.sub(r": '([^']+)'", r': "\1"', reference_information)         # Replace values
-            reference_information = json.loads(reference_information)
-            for ref in reference_information:
-                reference += f"Title: {ref['Description']}\nContent: {ref['Content']}\n\n"
-            res = self.run(query, reference)['output']
+            res = self.run(query, reference_information)['output']
             responses.append(res)
             
         return responses
