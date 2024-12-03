@@ -44,8 +44,9 @@ class PlanningPrompter(prompter.Prompter):
 
     score_prompt_base = """The following Plan <S> sets us Travel Plan given constraints and information.
     Please score the Plan <S> in terms of accuracy and efficiency. 
-    A score of 10 implies that planning follows all the constraints and information, with perfect efficiency in traveling.
-    You may provide reasoning for your scoring, but the final score should be between the tags <Score> and </Score>.
+    A score of 10.0 implies that planning follows all the constraints and information, with perfect efficiency in traveling.
+    Present the score with one digit after the decimal point.
+    You may provide reasoning for your scoring, but the final score must be between the tags <Score> and </Score>.
     
     Here are original information:
     """
@@ -166,13 +167,13 @@ class PlanningPrompter(prompter.Prompter):
             if current is None or current == "":
                 prompt += self.planning_prompt_start
                 prompt += self.planning_prompt_block.format(
-                    information=information # ADD
+                    information=information 
                 )
                 return prompt
             else:
                 prompt += self.improve_prompt_start
                 prompt += self.improve_prompt_block.format(
-                    information=information # ADD
+                    information=information 
                 )
                 prompt += self.improve_prompt_end.format(plan=current)
                 return prompt
@@ -202,7 +203,12 @@ class PlanningPrompter(prompter.Prompter):
             )
             return prompt
 
-    def improve_prompt(self, **kwargs) -> str:
+    def improve_prompt(
+        self,
+        information: str,
+        current: str,
+        **kwargs,
+    ) -> str:
         """
         Generate an improve prompt for the language model.
 
@@ -210,8 +216,14 @@ class PlanningPrompter(prompter.Prompter):
         :return: The improve prompt.
         :rtype: str
         """
-        pass
-
+        prompt = ""
+        prompt += self.improve_prompt_start
+        prompt += self.improve_prompt_block.format(
+            information=information 
+        )
+        prompt += self.improve_prompt_end.format(plan=current)
+        return prompt
+    
     def validation_prompt(self, **kwargs) -> str:
         """
         Generate a validation prompt for the language model.
@@ -222,7 +234,23 @@ class PlanningPrompter(prompter.Prompter):
         """
         pass
 
+def valid_planning(state: Dict) -> bool:
+    """
+    Helper function to determine whether the aggregation of two intermediate
+    solutions produces valid results.
 
+    :param state: Thought state resulting from an aggregation of thoughts.
+    :type state: Dict
+    :return: Returns whether the aggregation produced valid results.
+    :rtype: bool
+    """
+    if 'information' not in state.keys() or 'parts' not in state.keys() or 'current'  not in state.keys() or  'method' not in state.keys():
+        return False
+    elif len(state["current"]) < 1: 
+        return False
+    else: 
+        return True
+    
 class PlanningParser(parser.Parser):
     """
     PlanningParser provides the parsing of language model reponses specific to the Travel Planning Task.
@@ -376,7 +404,13 @@ class PlanningParser(parser.Parser):
         :return: The new thought state after parsing the responses from the language model.
         :rtype: Dict
         """
-        pass
+        new_states = []
+        for text in texts:
+            text = self.strip_answer_helper(text, "Plan")
+            new_state = state.copy()
+            new_state["current"] = text
+            new_states.append(new_state)
+        return new_states
 
     def parse_validation_answer(self, state: Dict, texts: List[str]) -> bool:
         """
@@ -394,68 +428,51 @@ class PlanningParser(parser.Parser):
 def processed_data(data):
     return str({key: data[key] for key in data.keys()})
 
-def got() -> operations.GraphOfOperations:
+def got_base() -> operations.GraphOfOperations:
     """
     Generates the Graph of Operations for the GoT method
     """
     operations_graph = operations.GraphOfOperations()
 
     operations_graph.append_operation(operations.Generate(1, 3))
-    operations_graph.append_operation(operations.Score(2, False))
+    operations_graph.append_operation(operations.Score(1, False))
     keep_best = operations.KeepBestN(2, True)
     operations_graph.append_operation(keep_best)
     
     operations_graph.append_operation(operations.Aggregate(2))
-    operations_graph.append_operation(operations.Score(2, False))
+    operations_graph.append_operation(operations.Score(1, False))
     keep_best2 = operations.KeepBestN(1, True)
     keep_best2.add_predecessor(keep_best)
     operations_graph.append_operation(keep_best2)
 
     return operations_graph
 
-
-def generate(
-    method: Callable[[], operations.GraphOfOperations],
-    batch
-) -> float:
+def got_advanced() -> operations.GraphOfOperations:
     """
-    Controller function that executes GoT method for given Batch
+    Generates the Graph of Operations for the GoT method
     """
+    operations_graph = operations.GraphOfOperations()
 
-    rows = [dict(zip(batch.keys(), values)) for values in zip(*batch.values())]
+    operations_graph.append_operation(operations.Generate(1, 4))
+    operations_graph.append_operation(operations.Score(2, False))
+    keep_best = operations.KeepBestN(2, True)
+    operations_graph.append_operation(keep_best)
+    
+    operations_graph.append_operation(operations.Aggregate(4))
+    operations_graph.append_operation(operations.Score(2, False))
+    keep_best2 = operations.KeepBestN(1, True)
+    keep_best2.add_predecessor(keep_best)
+    operations_graph.append_operation(keep_best2)
 
-    for data in rows:
-        data = processed_data(data)
-        logging.info(f"Running method {method.__name__}")
-        lm = language_models.ChatGPT(
-            "./graph_of_thoughts/language_models/config.json",
-            model_name="chatgpt",
-            cache=True,
-        )
-        operations_graph = method()
-        executor = controller.Controller(
-            lm,
-            operations_graph,
-            PlanningPrompter(),
-            PlanningParser(),
-            {
-                "information": data,
-                "parts": set(),
-                "current": "",
-                "method": method.__name__,
-            },
-        )
-        try:
-            executor.run()
-        except Exception as e:
-            logging.error(f"Exception: {e}")
+    val_improve = operations.ValidateAndImprove(
+                1, True, 2, valid_planning
+            )
+    val_improve.add_predecessor(keep_best2)
+    operations_graph.add_operation(val_improve)
+    operations_graph.append_operation(operations.Score(1, False))
+    operations_graph.append_operation(operations.KeepBestN(1, True))
 
-
-        path = "./res/got_test.json"
-        for operation in operations_graph.operations:
-            for thought in operation.thoughts:
-                thought.state["parts"] = list(thought.state["parts"])
-        executor.output_graph(path)
+    return operations_graph
 
 class GoT_LLM:
     def __init__(self, model_name: str):
@@ -470,7 +487,63 @@ class GoT_LLM:
         )
         self.prompter = PlanningPrompter()
         self.parser = PlanningParser()
-        self.method = got  # Default method
+        self.method = got_base 
+
+    def generate(self, batch):
+        """
+        Generate travel plans for the given batch using the GoT method.
+
+        :param batch: A batch of input data.
+        :return: List of generated plans.
+        """
+        rows = [dict(zip(batch.keys(), values)) for values in zip(*batch.values())]
+        generated_plans = []
+
+        for data in rows:
+            processed_data = str({key: data[key] for key in data.keys()})
+            logging.info(f"Generating plan for data: {processed_data}")
+
+            operations_graph = self.method()
+            executor = controller.Controller(
+                self.llm,
+                operations_graph,
+                self.prompter,
+                self.parser,
+                {
+                    "information": processed_data,
+                    "parts": set(),
+                    "current": "",
+                    "method": self.method.__name__,
+                },
+            )
+
+            try:
+                executor.run()
+                # Extract the finalized plan from the last operation's thoughts
+                final_plan = operations_graph.operations[-1].thoughts[0].state.get("current", "")
+                generated_plans.append(final_plan)
+            except Exception as e:
+                logging.error(f"Error during plan generation: {e}")
+                generated_plans.append("")  # Append empty plan in case of an error
+
+        return generated_plans
+
+
+
+class GoT_Advanced:
+    def __init__(self, model_name: str):
+        """
+        Initializes the GoT_LLM with the specified LLM configuration.
+
+        :param llm_config_path: Path to the language model configuration JSON file.
+        """
+        self.llm = language_models.ChatGPT(
+            model_name=model_name,
+            cache=True,
+        )
+        self.prompter = PlanningPrompter()
+        self.parser = PlanningParser()
+        self.method = got_advanced 
 
     def generate(self, batch):
         """
