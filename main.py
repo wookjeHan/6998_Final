@@ -1,4 +1,4 @@
-from agents import Vanilla_LLM, FewShot_LLM, ReWoo, GoT_LLM
+from agents import Vanilla_LLM, FewShot_LLM, ReWoo, GoT_LLM, GoT_Advanced
 from data import get_dataloader, get_dataset
 from postprocess import postprocess_plan
 from evaluation import eval_fn
@@ -18,6 +18,8 @@ def main(args):
         model = FewShot_LLM(args.llm, few_shot_num=3, train_datas=train_dataset)
     elif args.strategy == 'got':
         model = GoT_LLM(args.llm)
+    elif args.strategy == 'got_advanced':
+        model = GoT_Advanced(args.llm)
     elif args.strategy == 'rewoo':
         model = ReWoo(planner_model=args.llm, solver_model=args.llm)
     else:
@@ -53,7 +55,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--llm", type=str, default="gpt-4o-mini")
     parser.add_argument("--strategy", type=str, default="got")
-    parser.add_argument("--is_debug", type=bool, default=True)
+    parser.add_argument("--is_debug", type=bool, default=False)
 
     parser.add_argument("--batch_size", type=int, default=2)
 
