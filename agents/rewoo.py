@@ -8,6 +8,7 @@ import json
 
 from geopy.geocoders import Nominatim
 from langchain import OpenAI, LLMMathChain, LLMChain, PromptTemplate
+from langchain_openai import ChatOpenAI
 from langchain.agents import Tool
 
 class CalculatorWorker(Node):
@@ -19,8 +20,11 @@ class CalculatorWorker(Node):
 
     def run(self, input, log=False):
         assert isinstance(input, self.input_type)
-        llm = OpenAI(temperature=0)
-        response = llm.invoke(f"Please extract the mathematical form from this query. Your answer should be formatted as mathematical: \nQuery: {input}")
+        llm = OpenAI(temperature=0.1)
+        try:
+            response = llm.invoke(f"Please extract the mathematical form from this query. Your answer should be formatted as mathematical: \nQuery: {input}")
+        except Exception as e:
+            response = "Cannot calculate well"
         tool = LLMMathChain(llm=llm, verbose=False)
         try:
             response = tool(response)
@@ -43,11 +47,18 @@ class LLMWorker(Node):
 
     def run(self, input, log=False):
         assert isinstance(input, self.input_type)
-        llm = OpenAI(temperature=0)
+        llm = OpenAI(temperature=0.1)
         prompt = PromptTemplate(template="Respond in short directly with no extra words.\n\n{request}",
                                 input_variables=["request"])
         tool = LLMChain(prompt=prompt, llm=llm, verbose=False)
-        response = tool(input)
+        try:
+            response = tool(input)
+        except Exception as e:
+            try:
+                response = tool(" ".join(input.split()[:2000]))
+            except Exception as e:
+                response = tool(" ".join(input.split()[:1000]))
+                
         evidence = response["text"].strip("\n")
         assert isinstance(evidence, self.output_type)
         if log:
@@ -58,13 +69,85 @@ class ReferenceWorker(Node):
     def __init__(self, name="Reference", reference=None):
         super().__init__(name, input_type=str, output_type=str)
         self.isLLMBased = False
-        self.description = "This is the model that provides the reference information for planning the travel. It can provide the information such as hotels, flight, attractions, price of restaurant, etc."
+        self.description = "This is the model that provides the reference information for planning the travel. It can provide the information such as restuarants, hotels, flight, attractions, price of restaurant, etc."
         assert reference is not None, "Why reference is None?"
         self.reference = reference
+        self.reference = " ".join(self.reference.split()[:1024])
         
     def run(self, input, log=False):
-        llm = OpenAI(temperature=0)
-        evidence = llm.invoke(f"From the given information please search the query\n\nInformation: {self.reference}\n\nQuery:{input}")
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1, max_retries=10)
+        messages = [
+            (
+                "system",
+                "You are a helpful assistant that extract the information within the reference given the prompt.",
+            ),
+            ("human", f"Reference: {self.reference}\n\nQuery: {input}"),
+        ]
+
+        evidence = llm.invoke(messages).content
+        assert isinstance(evidence, self.output_type)
+        if log:
+            return {"input": input, "output": evidence}
+        return evidence
+    
+class TravelWorker(Node):
+    def __init__(self, name="Travel"):
+        super().__init__(name, input_type=str, output_type=str)
+        self.isLLMBased = False
+        self.description = "This is the model that provides the overall structure information for planning the travel. It can provide what things are needed to make a travel plan."
+        
+    def run(self, input, log=False):
+        evidence = "When traveling, you have to consider where to eat, where to go, and how to go and activities based on the commonsense."
+        assert isinstance(evidence, self.output_type)
+        if log:
+            return {"input": input, "output": evidence}
+        return evidence
+    
+
+class ReviewWorker(Node):
+    def __init__(self, name="Reviewer"):
+        super().__init__(name, input_type=str, output_type=str)
+        self.isLLMBased = False
+        self.description = "This is the model that reviews whether the plan makes sense or not. If the plan of the travel is given, it will make the feedback of the plan."
+        
+    def run(self, input, log=False):
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1, max_retries=10)
+
+        messages = [
+            (
+                "system",
+                "You are a helpful assistant that assess the plan whether it include comprehensive information such as flight, breakfast, lunch, dinner and activities.",
+            ),
+            ("human", f"Plan: {input}"),
+        ]
+
+        evidence = llm.invoke(messages).content
+
+        assert isinstance(evidence, self.output_type)
+        if log:
+            return {"input": input, "output": evidence}
+        return evidence
+    
+
+class Actor(Node):
+    def __init__(self, name="Actor", reference=None):
+        super().__init__(name, input_type=str, output_type=str)
+        self.isLLMBased = False
+        self.description = "This is the model that reflects the given feedback and make the final plan."
+        self.reference = reference
+        self.reference = " ".join(self.reference.split()[:1024])
+        
+    def run(self, input, log=False):
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1, max_retries=10)
+        messages = [
+            (
+                "system",
+                "You are a helpful assistant that reflect the feedback by using the given reference.",
+            ),
+            ("human", f"Given the feedback, please reflect it by using the given reference\n\nFeedback: {input}\n\nReference: {self.reference}"),
+        ]
+        evidence = llm.invoke(messages).content
+        # print(f"EVIDENCE IN ACTOR : {evidence}")
         assert isinstance(evidence, self.output_type)
         if log:
             return {"input": input, "output": evidence}
@@ -72,7 +155,10 @@ class ReferenceWorker(Node):
     
 WORKER_REGISTRY = {"Calculator": CalculatorWorker,
                    "LLM": LLMWorker,
-                   "Reference": ReferenceWorker
+                   "Reference": ReferenceWorker,
+                   "Travel": TravelWorker,
+                   "Reviewer":ReviewWorker,
+                   "Actor": Actor
                    }
 
 
@@ -108,7 +194,7 @@ class Planner(LLMNode):
     def _generate_worker_prompt(self, reference):
         prompt = "Tools can be one of the following:\n"
         for name in self.workers:
-            if name == "Reference":
+            if name == "Reference" or name == "Actor":
                 worker = self._get_worker(name, reference)
             else:
                 worker = self._get_worker(name)
@@ -133,7 +219,8 @@ class Solver(LLMNode):
 
 
 class PWS:
-    def __init__(self, available_tools=["Reference", "LLM", "Calculator"], fewshot="\n", planner_model="gpt-4o-mini",
+    # def __init__(self, available_tools=["Reference", "LLM", "Calculator", "Travel", "Reviewer", "Actor"], fewshot="\n", planner_model="gpt-4o-mini",
+    def __init__(self, available_tools=["Reference", "LLM", "Calculator", "Travel", "Reviewer"], fewshot="\n", planner_model="gpt-4o-mini",
                  solver_model="gpt-4o-mini"):
         self.workers = available_tools
         self.planner = Planner(workers=self.workers,
@@ -159,11 +246,16 @@ class PWS:
         self.planner_evidences = self._parse_planner_evidences(plan)
         #assert len(self.plans) == len(self.planner_evidences)
         # Work
+        # print(self.planner_evidences)
         self._get_worker_evidences(reference)
         worker_log = ""
         for i in range(len(self.plans)):
             e = f"#E{i + 1}"
-            worker_log += f"{self.plans[i]}\nEvidence:\n{self.worker_evidences[e]}\n"
+            try:
+                worker_log += f"{self.plans[i]}\nEvidence:\n{self.worker_evidences[e]}\n"
+            except:
+                worker_log += f"{self.plans[i]}\n"
+        # print(worker_log)
         # Solve
         solver_response = self.solver.run(input, worker_log, log=True)
         output = solver_response["output"]
@@ -197,17 +289,24 @@ class PWS:
         evidences = {}
         for line in response.splitlines():
             if line.startswith("#") and line[1] == "E" and line[2].isdigit():
-                e, tool_call = line.split("=", 1)
-                e, tool_call = e.strip(), tool_call.strip()
-                if len(e) == 3:
-                    evidences[e] = tool_call
-                else:
-                    evidences[e] = "No evidence found"
+                e = line.split("=", 1)
+                if len(e) == 2:
+                    e, tool_call = e
+                try:
+                    e, tool_call = e.strip(), tool_call.strip()
+                    if len(e) == 3:
+                        evidences[e] = tool_call
+                    else:
+                        evidences[e] = "No evidence found"
+                except Exception as error:
+                    print(error)
+                    continue
         return evidences
 
     # use planner evidences to assign tasks to respective workers.
     def _get_worker_evidences(self, reference):
         for e, tool_call in self.planner_evidences.items():
+            # print("E : ", e, "Tool_call : ", tool_call)
             if "[" not in tool_call:
                 self.worker_evidences[e] = tool_call
                 continue
@@ -218,10 +317,12 @@ class PWS:
                 if var in self.worker_evidences:
                     tool_input = tool_input.replace(var, "[" + self.worker_evidences[var] + "]")
             if tool in self.workers:
-                if tool == "Reference":
+                # print(f"{tool} is finded!!!")
+                if tool == "Reference" or tool == "Actor":
                     self.worker_evidences[e] = WORKER_REGISTRY[tool](reference=reference).run(tool_input)
                 else:
                     self.worker_evidences[e] = WORKER_REGISTRY[tool]().run(tool_input)
+                # print(f"REsult is {self.worker_evidences[e]}")
             else:
                 self.worker_evidences[e] = "No evidence found"
 
@@ -241,7 +342,8 @@ class PWS:
 
 class ReWoo(PWS):
     def __init__(self, fewshot=fewshots.HOTPOTQA_PWS_BASE, planner_model="gpt-4o-mini",
-                 solver_model="gpt-4o-mini", available_tools=["Reference", "LLM", "Calculator"]):
+                 solver_model="gpt-4o-mini", available_tools=["Reference", "LLM", "Calculator", "Travel", "Reviewer", "Actor"], advanced=False):
+        available_tools = ["Reference", "LLM", "Calculaotr"] if advanced == False else available_tools
         super().__init__(available_tools=available_tools,
                          fewshot=fewshot,
                          planner_model=planner_model,

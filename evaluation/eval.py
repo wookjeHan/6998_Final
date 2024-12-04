@@ -53,7 +53,7 @@ def eval_score(set_type: str, file_path: str, is_debug: bool):
         query_data_list  = load_dataset('osunlp/TravelPlanner','validation',download_mode="force_redownload")['validation']
 
     
-    query_data_list = [x for x in query_data_list][:2] if is_debug else [x for x in query_data_list]
+    query_data_list = [x for x in query_data_list][:20] if is_debug else [x for x in query_data_list]
     hardConstraint_statistic= {level:{day:[] for day in [3,5,7]} for level in ['easy','medium','hard']} 
     commonsenseConstraint_statistic = {level:{day:[] for day in [3,5,7]} for level in ['easy','medium','hard']} 
     tested_plans = load_line_json_data(file_path)

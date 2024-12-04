@@ -22,24 +22,26 @@ def main(args):
         model = GoT_Advanced(args.llm)
     elif args.strategy == 'rewoo':
         model = ReWoo(planner_model=args.llm, solver_model=args.llm)
+    elif args.strategy == "rewoo_advanced":
+        model = ReWoo(planner_model=args.llm, solver_model=args.llm, advanced=True)
     else:
         assert False, f"Strategy: {args.strategy} is not supported"
         
     # Eval
     preds = []
-    for id, batch in tqdm(enumerate(val_dataloader)):
+    for id, batch in enumerate(tqdm(val_dataloader)):
         pred = model.generate(batch) # array of string
         dict = [{'idx': id*args.batch_size+x, 'query':batch['query'][x], 'plan':pred[x]} for x in range(len(batch['query']))]
         preds.extend(dict)
-        if args.is_debug:
+        if args.is_debug and id > 9:
             break
-    # ars.output_dir 에 파일저장
+    # Save file 
     os.makedirs(args.output_dir, exist_ok=True) 
     output_file = os.path.join(args.output_dir, f'generated_predictions-{args.strategy}.json')
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(preds, f, indent=4, ensure_ascii=False)
     print(f"Predictions saved to {output_file}")
-    # 저장한 것 post processing하기
+    # Post Processing
     print("Start PostProcessing")
     postprocess_dir = os.path.join(args.output_dir, f'generated_predictions-{args.strategy}-postprocess.json')
     postprocess_plan(output_file, postprocess_dir)
@@ -54,7 +56,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--llm", type=str, default="gpt-4o-mini")
-    parser.add_argument("--strategy", type=str, default="got")
+    parser.add_argument("--strategy", type=str, default="rewoo")
     parser.add_argument("--is_debug", type=bool, default=False)
 
     parser.add_argument("--batch_size", type=int, default=2)
