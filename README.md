@@ -74,7 +74,15 @@ python3 main.py --llm <LLM_MODEL_NAME> --strategy <STRATEGY> --batch_size <BATCH
 - Evaluation Results: Saved to `<OUTPUT_DIRECTORY>/generated_predictions-<STRATEGY>-result.json`.
 
 ### 4. Results
-TODO
+| Method              | Delivery Rate | Commonsense Constraint (Micro) | Commonsense Constraint (Macro) | Hard Constraint (Micro) | Hard Constraint (Macro) | Final Pass |
+|---------------------|---------------|---------------------------------|---------------------------------|--------------------------|--------------------------|------------|
+| Vanilla LLMs        | 100.00%       | 60.83%                          | 0.56%                           | 0.23%                   | 0.00%                   | 0.00%      |
+| Few Shot LLMs       | 100.00%       | 65.83%                          | 2.78%                           | 3.33%                   | 1.67%                   | 0.00%      |
+| ReWOO               | 100.00%       | 70.28%                          | 6.67%                           | 5.00%                   | 1.67%                   | 1.11%      |
+| GoT                 | 100.00%       | 73.33%                          | 6.67%                           | 5.48%                   | 1.67%                   | 1.11%      |
+| Advanced ReWOO      | 100.00%       | 72.50%                          | 6.67%                           | 5.95%                   | 3.89%                   | 1.67%      |
+| Advanced GoT        | 100.00%       | **74.58%**                      | **6.67%**                       | **7.38%**               | **4.44%**               | **1.67%**  |
+
 
 # Contact
 If you have any problems, please contact [Wonjoon Choi](mailto:wc2852@columbia.edu) and [Wookje Han](mailto:wh2571@columbia.edu).
