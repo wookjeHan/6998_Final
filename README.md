@@ -109,17 +109,23 @@ python3 ablation.py --strategy <STRATEGY> --dir_path <PATH_TO_RESULT_DIR> --dir_
 #### Example Results:
 
 **GoT's Result**
+
 ![Comparison between GoT and Advanced within Commonsense](/evaluation_ablation/got/commonsense_comparison.png)
+
 **Figure 1:** Comparison between GoT and Advanced within Commonsense
 
 ![Comparison between GoT and Advanced within Hard](/evaluation_ablation/got/hard_comparison.png)
+
 **Figure 2:** Comparison between GoT and Advanced within Hard
 
-ReWOO's Result
+**ReWOO's Result**
+
 ![Comparison between ReWOO and Advanced within Commonsense](/evaluation_ablation/rewoo/commonsense_comparison.png)
+
 **Figure 3:** Comparison between ReWOO and Advanced within Commonsense
 
 ![Comparison between ReWOO and Advanced within Hard](/evaluation_ablation/rewoo/hard_comparison.png)
+
 **Figure 4:** Comparison between ReWOO and Advanced within Hard
 
 
