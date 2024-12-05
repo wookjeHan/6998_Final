@@ -46,6 +46,8 @@ python3 main.py --llm <LLM_MODEL_NAME> --strategy <STRATEGY> --batch_size <BATCH
   - `few_shot_llm`: Few-shot prompting with training examples.
   - `got`: Graph of Thought reasoning.
   - `rewoo`: ReWOO reasoning.
+  - `got_advanced`: Advanced GoT reasoning.
+  - `rewoo_advanced`: Advanced ReWOO reasoning.
 - `--batch_size`: Number of queries processed in one batch (default: `2`).
 - `--output_dir`: Directory to save results (default: `./res`).
 - `--is_debug`: Debug mode. Set to `True` for a quick test run or `False` for full evaluation (default: `True`).
@@ -82,6 +84,44 @@ python3 main.py --llm <LLM_MODEL_NAME> --strategy <STRATEGY> --batch_size <BATCH
 | GoT                 | 100.00%       | 73.33%                          | 6.67%                           | 5.48%                   | 1.67%                   | 1.11%      |
 | Advanced ReWOO      | 100.00%       | 72.50%                          | 6.67%                           | 5.95%                   | 3.89%                   | 1.67%      |
 | Advanced GoT        | 100.00%       | **74.58%**                      | **6.67%**                       | **7.38%**               | **4.44%**               | **1.67%**  |
+
+
+
+### 5. Ablation
+
+```bash
+python3 ablation.py --strategy <STRATEGY> --dir_path <PATH_TO_RESULT_DIR> --dir_path2 <PATH_TO_RESULT_DIR2> --is_comp <COMPARISON MODE>
+```
+
+
+#### Options:
+- `--strategy`: Reasoning strategy to apply. Options include:
+  - `vanilla`: Basic LLM reasoning.
+  - `few_shot_llm`: Few-shot prompting with training examples.
+  - `got`: Graph of Thought reasoning.
+  - `rewoo`: ReWOO reasoning.
+  - `got_advanced`: Advanced GoT reasoning.
+  - `rewoo_advanced`: Advanced ReWOO reasoning.
+- `--dir_path`: Directory that save results file to analyze 
+- `--dir_path2`: Directory that save results file to analyze (needed if it is comparison mode)
+- `--is_comp`: Bool value to indicate whether you want to compare the result between dir_path and dir_path2
+
+#### Example Results:
+
+**GoT's Result**
+![Comparison between GoT and Advanced within Commonsense](/evaluation_ablation/got/commonsense_comparison.png)
+**Figure 1:** Comparison between GoT and Advanced within Commonsense
+
+![Comparison between GoT and Advanced within Hard](/evaluation_ablation/got/hard_comparison.png)
+**Figure 2:** Comparison between GoT and Advanced within Hard
+
+ReWOO's Result
+![Comparison between ReWOO and Advanced within Commonsense](/evaluation_ablation/rewoo/commonsense_comparison.png)
+**Figure 3:** Comparison between ReWOO and Advanced within Commonsense
+
+![Comparison between ReWOO and Advanced within Hard](/evaluation_ablation/rewoo/hard_comparison.png)
+**Figure 4:** Comparison between ReWOO and Advanced within Hard
+
 
 
 # Contact
