@@ -343,7 +343,7 @@ class PWS:
 class ReWoo(PWS):
     def __init__(self, fewshot=fewshots.HOTPOTQA_PWS_BASE, planner_model="gpt-4o-mini",
                  solver_model="gpt-4o-mini", available_tools=["Reference", "LLM", "Calculator", "Travel", "Reviewer", "Actor"], advanced=False):
-        available_tools = ["Reference", "LLM", "Calculaotr"] if advanced == False else available_tools
+        available_tools = ["Reference", "LLM", "Calculator"] if advanced == False else available_tools
         super().__init__(available_tools=available_tools,
                          fewshot=fewshot,
                          planner_model=planner_model,
